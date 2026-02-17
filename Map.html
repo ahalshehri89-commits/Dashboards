@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Location Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+            color: #1e293b;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(30, 41, 59, 0.1);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #1e293b;
+            font-weight: 700;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            color: #64748b;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 25px;
+        }
+        
+        .map-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .map-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+        }
+        
+        #map {
+            width: 100%;
+            height: 600px;
+            border: none;
+        }
+        
+        .info-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .info-box {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .info-box:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+        
+        .info-box h2 {
+            font-size: 1rem;
+            color: #64748b;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .info-box h2 i {
+            font-size: 1.2rem;
+        }
+        
+        .info-value {
+            color: #1e293b;
+            font-weight: 500;
+            font-size: 1.1rem;
+            word-break: break-word;
+        }
+        
+        .coordinates-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        
+        .coordinates-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 25px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            background: linear-gradient(to right, #3b82f6, #1d4ed8);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            background: linear-gradient(to right, #2563eb, #1e40af);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(to right, #64748b, #475569);
+        }
+        
+        .btn-secondary:hover {
+            background: linear-gradient(to right, #475569, #334155);
+        }
+        
+        .instructions {
+            background: linear-gradient(to right, #fef3c7, #fef7cd);
+            border-left: 4px solid #f59e0b;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.95rem;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .instructions strong {
+            color: #d97706;
+        }
+        
+        .coordinates-display {
+            font-family: 'Courier New', monospace;
+            background-color: #f8fafc;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+            font-weight: 600;
+        }
+        
+        .loading {
+            color: #64748b;
+            font-style: italic;
+        }
+        
+        .error {
+            color: #ef4444;
+        }
+        
+        @media (max-width: 1024px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Location Dashboard</h1>
+            <p class="subtitle">Interactive map with location details - Click anywhere to get information</p>
+        </header>
+        
+        <div class="instructions">
+            <strong>How to use:</strong> Click once on the map to place a marker and see location details. 
+            Double-click to zoom in. Use the buttons below to find your current location or reset the view.
+        </div>
+        
+        <div class="controls">
+            <button class="btn" id="locateMe">
+                <i class="fas fa-location-arrow"></i> Locate Me
+            </button>
+            <button class="btn btn-secondary" id="resetView">
+                <i class="fas fa-sync-alt"></i> Reset View
+            </button>
+        </div>
+        
+        <div class="dashboard">
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+            <div class="info-panel">
+                <div class="info-box">
+                    <h2><i class="fas fa-map-marker-alt"></i> Coordinates</h2>
+                    <input type="text" class="coordinates-input" id="coords" value="21.485800, 39.192500" 
+                           placeholder="Enter coordinates (lat, lng)">
+                </div>
+                <div class="info-box">
+                    <h2><i class="fas fa-road"></i> Street Name</h2>
+                    <p class="info-value" id="street">Click on map</p>
+                </div>
+                <div class="info-box">
+                    <h2><i class="fas fa-map"></i> District Name</h2>
+                    <p class="info-value" id="district">-</p>
+                </div>
+                <div class="info-box">
+                    <h2><i class="fas fa-address-card"></i> Full Address</h2>
+                    <p class="info-value" id="address">Click on map</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize the map
+        var mymap = L.map('map', {
+            doubleClickZoom: false,
+            zoomControl: true
+        }).setView([21.4858, 39.1925], 12);
+
+        // Add zoom control
+        L.control.zoom({
+            position: 'topright'
+        }).addTo(mymap);
+        
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(mymap);
+
+        var currentMarker = null;
+
+        // Function to update location information
+        function updateLocation(lat, lng) {
+            document.getElementById('coords').value = lat.toFixed(6) + ', ' + lng.toFixed(6);
+            document.getElementById('address').textContent = 'Loading...';
+            document.getElementById('address').className = 'info-value loading';
+            document.getElementById('street').textContent = 'Loading...';
+            document.getElementById('street').className = 'info-value loading';
+            document.getElementById('district').textContent = 'Loading...';
+            document.getElementById('district').className = 'info-value loading';
+            
+            var url = 'https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&addressdetails=1&accept-language=en';
+            
+            fetch(url)
+                .then(function(res) {
+                    return res.json();
+                })
+                .then(function(data) {
+                    if (data && data.address) {
+                        var addr = data.address;
+                        var street = addr.road || addr.street || addr.path || addr.footway || addr.pedestrian || '-';
+                        var dist = addr.suburb || addr.neighbourhood || addr.quarter || addr.borough || 
+                                   addr.district || addr.subdistrict || addr.city_district || addr.county || '-';
+                        
+                        document.getElementById('street').textContent = street;
+                        document.getElementById('street').className = 'info-value';
+                        document.getElementById('district').textContent = dist;
+                        document.getElementById('district').className = 'info-value';
+                        document.getElementById('address').textContent = data.display_name;
+                        document.getElementById('address').className = 'info-value';
+                        
+                        // Update URL hash for sharing
+                        window.location.hash = lat.toFixed(6) + ',' + lng.toFixed(6);
+                    }
+                })
+                .catch(function() {
+                    document.getElementById('address').textContent = 'Error loading address';
+                    document.getElementById('address').className = 'info-value error';
+                    document.getElementById('street').textContent = '-';
+                    document.getElementById('street').className = 'info-value';
+                    document.getElementById('district').textContent = '-';
+                    document.getElementById('district').className = 'info-value';
+                });
+        }
+
+        // Click and double-click handler
+        var clickCount = 0;
+        var clickTimer = null;
+        
+        mymap.on('click', function(e) {
+            clickCount++;
+            
+            if (clickCount === 1) {
+                clickTimer = setTimeout(function() {
+                    // Single click action
+                    var lat = e.latlng.lat;
+                    var lng = e.latlng.lng;
+                    
+                    if (currentMarker) {
+                        mymap.removeLayer(currentMarker);
+                    }
+                    
+                    currentMarker = L.marker([lat, lng]).addTo(mymap);
+                    updateLocation(lat, lng);
+                    
+                    // Reset click count
+                    clickCount = 0;
+                }, 300);
+            } else {
+                // Double click action
+                clearTimeout(clickTimer);
+                
+                // Zoom in by 2 levels
+                var currentZoom = mymap.getZoom();
+                mymap.setView(e.latlng, Math.min(currentZoom + 2, 19));
+                
+                // Reset click count
+                clickCount = 0;
+            }
+        });
+
+        // Coordinate input handler
+        document.getElementById('coords').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                var coordsText = this.value.trim();
+                var coords = coordsText.split(',');
+                
+                if (coords.length === 2) {
+                    var lat = parseFloat(coords[0].trim());
+                    var lng = parseFloat(coords[1].trim());
+                    
+                    if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+                        // Remove existing marker
+                        if (currentMarker) {
+                            mymap.removeLayer(currentMarker);
+                        }
+                        
+                        // Add new marker and update location
+                        currentMarker = L.marker([lat, lng]).addTo(mymap);
+                        mymap.setView([lat, lng], Math.max(mymap.getZoom(), 14));
+                        updateLocation(lat, lng);
+                    } else {
+                        alert('Please enter valid coordinates (latitude: -90 to 90, longitude: -180 to 180)');
+                    }
+                } else {
+                    alert('Please enter coordinates in format: latitude, longitude');
+                }
+            }
+        });
+
+        // Locate me functionality
+        document.getElementById('locateMe').addEventListener('click', function() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    var lat = position.coords.latitude;
+                    var lng = position.coords.longitude;
+                    
+                    mymap.setView([lat, lng], 15);
+                    
+                    if (currentMarker) {
+                        mymap.removeLayer(currentMarker);
+                    }
+                    
+                    currentMarker = L.marker([lat, lng]).addTo(mymap);
+                    updateLocation(lat, lng);
+                }, function() {
+                    alert('Unable to retrieve your location. Please check your browser permissions.');
+                });
+            } else {
+                alert('Geolocation is not supported by this browser.');
+            }
+        });
+
+        // Reset view functionality
+        document.getElementById('resetView').addEventListener('click', function() {
+            mymap.setView([21.4858, 39.1925], 12);
+            
+            if (currentMarker) {
+                mymap.removeLayer(currentMarker);
+                currentMarker = null;
+            }
+            
+            document.getElementById('coords').value = '21.485800, 39.192500';
+            document.getElementById('street').textContent = 'Click on map';
+            document.getElementById('street').className = 'info-value';
+            document.getElementById('district').textContent = '-';
+            document.getElementById('district').className = 'info-value';
+            document.getElementById('address').textContent = 'Click on map';
+            document.getElementById('address').className = 'info-value';
+            
+            // Clear URL hash
+            window.location.hash = '';
+        });
+
+        // Initialize from URL hash if present
+        function initFromHash() {
+            if (window.location.hash && window.location.hash.length > 1) {
+                var hash = window.location.hash.substring(1);
+                var parts = hash.split(',');
+                if (parts.length === 2) {
+                    var lat = parseFloat(parts[0]);
+                    var lng = parseFloat(parts[1]);
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        mymap.setView([lat, lng], Math.max(mymap.getZoom(), 14));
+                        if (currentMarker) {
+                            mymap.removeLayer(currentMarker);
+                        }
+                        currentMarker = L.marker([lat, lng]).addTo(mymap);
+                        updateLocation(lat, lng);
+                    }
+                }
+            }
+        }
+        
+        // Initialize the dashboard
+        initFromHash();
+    </script>
+</body>
+</html>
